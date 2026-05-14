@@ -15,8 +15,12 @@ export const useRouteStore = create<RouteState>((set) => ({
   calculateRoute: async (origin, dest, mode, pref) => {
     set({ loading: true, error: null });
     try {
-      const res = await axios.post(${API_BASE_URL}/api/v1/routes, {
-        origin, destination: dest, transport_mode: mode, preference: pref
+      const url = API_BASE_URL + '/api/v1/routes';
+      const res = await axios.post(url, {
+        origin: origin,
+        destination: dest,
+        transport_mode: mode,
+        preference: pref
       });
       set({ routes: res.data, loading: false });
     } catch (e: any) {
