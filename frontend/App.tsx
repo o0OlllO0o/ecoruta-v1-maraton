@@ -23,13 +23,12 @@ export default function App() {
   const [route, setRoute] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectingOrigin, setSelectingOrigin] = useState(true);
   const [originSearch, setOriginSearch] = useState('');
   const [destSearch, setDestSearch] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [routeLine, setRouteLine] = useState<any>(null);
+  const [editingField, setEditingField] = useState<'origin' | 'dest'>('origin');
   /* ==================== FIN ESTADOS ==================== */
 
   const searchTimeout = useRef<any>(null);
@@ -43,12 +42,14 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS === 'web' && (window as any).__leafletMap) {
       updateMarkers();
+          (window as any).__currentOrigin = origin;
+    (window as any).__currentDest = destination;
     }
   }, [origin, destination]);
-    // Recalcular ruta al cambiar transporte o preferencia si ya hay resultados
+
   useEffect(() => {
     if (showResults && origin && destination) {
-      calculateRoute(true);
+      calculateRoute();
     }
   }, [transportMode, preference]);
   /* ==================== FIN EFECTOS ==================== */
@@ -76,19 +77,33 @@ export default function App() {
       attribution: '© OpenStreetMap',
       referrerPolicy: 'strict-origin-when-cross-origin'
     }).addTo(map);
+
     map.on('click', (e: any) => {
       const coord = { latitude: e.latlng.lat, longitude: e.latlng.lng };
-      if (selectingOrigin) {
+      // Leer los valores actuales de las variables globales
+      const currentOrigin = (window as any).__currentOrigin;
+      const currentDest = (window as any).__currentDest;
+      
+      if (!currentOrigin) {
         setOrigin(coord);
         setOriginSearch(`${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)}`);
-        setSelectingOrigin(false);
+        (window as any).__currentOrigin = coord;
+        setEditingField('dest');
+      } else if (!currentDest) {
+        setDestination(coord);
+        setDestSearch(`${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)}`);
+        (window as any).__currentDest = coord;
       } else {
         setDestination(coord);
         setDestSearch(`${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)}`);
+        (window as any).__currentDest = coord;
       }
     });
+
     (window as any).__leafletMap = map;
     (window as any).__originMarker = null;
+    (window as any).__currentOrigin = null;
+(window as any).__currentDest = null;
     (window as any).__destMarker = null;
   };
 
@@ -122,9 +137,10 @@ export default function App() {
   /* ==================== FIN GEOLOCALIZACIÓN ==================== */
 
   /* ==================== BÚSQUEDA CON NOMINATIM ==================== */
-  const handleSearchInput = (text: string) => {
-    if (selectingOrigin) setOriginSearch(text);
+  const handleSearchInput = (text: string, field: 'origin' | 'dest') => {
+    if (field === 'origin') setOriginSearch(text);
     else setDestSearch(text);
+    setEditingField(field);
     if (text.length < 3) { setSuggestions([]); setShowSuggestions(false); return; }
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => searchNominatim(text), 300);
@@ -144,15 +160,22 @@ export default function App() {
   const selectSuggestion = (item: any) => {
     const coords = { latitude: item.lat, longitude: item.lon };
     const shortName = item.name.split(',').slice(0, 2).join(',');
-    if (selectingOrigin) { setOrigin(coords); setOriginSearch(shortName); setSelectingOrigin(false); }
-    else { setDestination(coords); setDestSearch(shortName); }
-    setSuggestions([]); setShowSuggestions(false);
+    if (editingField === 'origin') {
+      setOrigin(coords);
+      setOriginSearch(shortName);
+      setEditingField('dest');
+    } else {
+      setDestination(coords);
+      setDestSearch(shortName);
+    }
+    setSuggestions([]);
+    setShowSuggestions(false);
     const map = (window as any).__leafletMap;
     if (map) map.setView([item.lat, item.lon], 16);
   };
   /* ==================== FIN BÚSQUEDA ==================== */
 
-/* ==================== CÁLCULO DE RUTA ==================== */
+  /* ==================== CÁLCULO DE RUTA ==================== */
   const calculateRoute = async () => {
     if (!origin || !destination) return;
     setLoading(true); setError(null);
@@ -167,23 +190,18 @@ export default function App() {
       if (transportMode === 'walking') profile = 'foot';
       else if (transportMode === 'skateboard') profile = 'foot';
 
-      // Construir URL con waypoints diferentes según vehículo
       let waypoints = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
-      
-      // Scooter: ruta más directa (sin waypoints extra)
-      // Bici: añadir un parque como waypoint para ruta más verde
       if (transportMode === 'bicycle' && preference === 'leisure') {
-        waypoints = `${origin.longitude},${origin.latitude};-0.3688,39.4730;${destination.longitude},${destination.latitude}`; // Jardín del Turia
+        waypoints = `${origin.longitude},${origin.latitude};-0.3688,39.4730;${destination.longitude},${destination.latitude}`;
       }
-      // Monopatín: ruta por zonas peatonales
       if (transportMode === 'skateboard') {
-        waypoints = `${origin.longitude},${origin.latitude};-0.3763,39.4699;${destination.longitude},${destination.latitude}`; // Plaza Ayuntamiento
+        waypoints = `${origin.longitude},${origin.latitude};-0.3763,39.4699;${destination.longitude},${destination.latitude}`;
       }
 
       const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${waypoints}?geometries=geojson&overview=full&alternatives=${preference === 'leisure' ? 'true' : 'false'}`;
       const osrmRes = await fetch(osrmUrl);
       const osrmData = await osrmRes.json();
-      
+
       if (osrmData.routes && osrmData.routes.length > 0) {
         const L = (window as any).L;
         const map = (window as any).__leafletMap;
@@ -198,7 +216,6 @@ export default function App() {
 
         const coords = chosenRoute.geometry.coordinates.map((c: any) => [c[1], c[0]]);
 
-        // Color según vehículo
         let routeColor = '#2ecc71';
         let routeDash: string | null = null;
         if (transportMode === 'walking') { routeColor = '#3498db'; routeDash = '5, 10'; }
@@ -240,12 +257,13 @@ export default function App() {
     if ((window as any).__destMarker) { (window as any).__leafletMap.removeLayer((window as any).__destMarker); (window as any).__destMarker = null; }
     setRoute(null); setShowResults(false);
     setOrigin(userLocation); setDestination(null);
-    setSelectingOrigin(true); setError(null);
+    setEditingField('dest'); setError(null);
     setOriginSearch('Mi ubicación'); setDestSearch('');
     setSuggestions([]); setShowSuggestions(false);
   };
   /* ==================== FIN RESET ==================== */
-    return (
+
+  return (
     <View style={{ flex: 1, position: 'relative' }}>
       {/* ==================== MAPA ==================== */}
       <div id="leaflet-map" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
@@ -253,13 +271,13 @@ export default function App() {
 
       {/* ==================== PANEL IZQUIERDO: BÚSQUEDA + BOTÓN ==================== */}
       <View style={{ position: 'absolute', top: 10, left: 10, zIndex: 1000, width: 300, gap: 4 }}>
-        
+
         {/* CAMPO ORIGEN */}
         <View style={{ backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 10, padding: 8, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#2ecc71', justifyContent: 'center', alignItems: 'center', marginRight: 6 }}>
             <Text style={{ color: '#fff', fontSize: 10 }}>A</Text>
           </View>
-          <input placeholder="Origen..." value={originSearch} onChange={(e: any) => { setSelectingOrigin(true); handleSearchInput(e.target.value); }} onFocus={() => { setSelectingOrigin(true); if (originSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 12 }} />
+          <input placeholder="Origen..." value={originSearch} onChange={(e: any) => handleSearchInput(e.target.value, 'origin')} onFocus={() => { setEditingField('origin'); if (originSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 12 }} />
           <TouchableOpacity onPress={getLocation}><Text style={{ fontSize: 14 }}>📍</Text></TouchableOpacity>
         </View>
 
@@ -268,7 +286,7 @@ export default function App() {
           <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#e74c3c', justifyContent: 'center', alignItems: 'center', marginRight: 6 }}>
             <Text style={{ color: '#fff', fontSize: 10 }}>B</Text>
           </View>
-          <input placeholder="Destino..." value={destSearch} onChange={(e: any) => { setSelectingOrigin(false); handleSearchInput(e.target.value); }} onFocus={() => { setSelectingOrigin(false); if (destSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 12 }} />
+          <input placeholder="Destino..." value={destSearch} onChange={(e: any) => handleSearchInput(e.target.value, 'dest')} onFocus={() => { setEditingField('dest'); if (destSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 12 }} />
         </View>
 
         {/* SUGERENCIAS */}
@@ -293,7 +311,7 @@ export default function App() {
 
       {/* ==================== PANEL DERECHO: TRANSPORTE + ECO/PASEO ==================== */}
       <View style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, gap: 10 }}>
-        
+
         {/* SELECTOR DE TRANSPORTE */}
         <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', borderRadius: 14, padding: 6, gap: 4 }}>
           {['walking', 'bicycle', 'scooter', 'skateboard'].map(m => (
