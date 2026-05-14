@@ -53,9 +53,10 @@ export default function App() {
     if (!container || (window as any).__mapInit) return;
     (window as any).__mapInit = true;
     const map = L.map('leaflet-map').setView([39.4699, -0.3763], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap',
+  referrerPolicy: 'strict-origin-when-cross-origin'
+}).addTo(map);
     map.on('click', (e: any) => {
       const coord = { latitude: e.latlng.lat, longitude: e.latlng.lng };
       if (selectingOrigin) {
