@@ -45,6 +45,12 @@ export default function App() {
       updateMarkers();
     }
   }, [origin, destination]);
+    // Recalcular ruta al cambiar transporte o preferencia si ya hay resultados
+  useEffect(() => {
+    if (showResults && origin && destination) {
+      calculateRoute(true);
+    }
+  }, [transportMode, preference]);
   /* ==================== FIN EFECTOS ==================== */
 
   /* ==================== MAPA LEAFLET ==================== */
@@ -156,21 +162,71 @@ export default function App() {
         destination: { lat: destination.latitude, lon: destination.longitude },
         transport_mode: transportMode, preference,
       });
-      if (res.data?.[0]) { setRoute(res.data[0]); setShowResults(true); }
 
-      const profile = transportMode === 'walking' ? 'foot' : 'bike';
-      const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?geometries=geojson&overview=full`;
+      let profile = 'bike';
+      if (transportMode === 'walking') profile = 'foot';
+      else if (transportMode === 'skateboard') profile = 'foot';
+
+      // Construir URL con waypoints diferentes según vehículo
+      let waypoints = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
+      
+      // Scooter: ruta más directa (sin waypoints extra)
+      // Bici: añadir un parque como waypoint para ruta más verde
+      if (transportMode === 'bicycle' && preference === 'leisure') {
+        waypoints = `${origin.longitude},${origin.latitude};-0.3688,39.4730;${destination.longitude},${destination.latitude}`; // Jardín del Turia
+      }
+      // Monopatín: ruta por zonas peatonales
+      if (transportMode === 'skateboard') {
+        waypoints = `${origin.longitude},${origin.latitude};-0.3763,39.4699;${destination.longitude},${destination.latitude}`; // Plaza Ayuntamiento
+      }
+
+      const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${waypoints}?geometries=geojson&overview=full&alternatives=${preference === 'leisure' ? 'true' : 'false'}`;
       const osrmRes = await fetch(osrmUrl);
       const osrmData = await osrmRes.json();
-      if (osrmData.routes?.[0]?.geometry) {
-        const coords = osrmData.routes[0].geometry.coordinates.map((c: any) => [c[1], c[0]]);
+      
+      if (osrmData.routes && osrmData.routes.length > 0) {
         const L = (window as any).L;
         const map = (window as any).__leafletMap;
-        if (map && L) {
-          if ((window as any).__routeLine) map.removeLayer((window as any).__routeLine);
-          (window as any).__routeLine = L.polyline(coords, { color: '#2ecc71', weight: 5, opacity: 0.7 }).addTo(map);
-          map.fitBounds((window as any).__routeLine.getBounds(), { padding: [50, 50] });
+        if (!map || !L) return;
+
+        if ((window as any).__routeLine) map.removeLayer((window as any).__routeLine);
+
+        let chosenRoute = osrmData.routes[0];
+        if (preference === 'leisure' && osrmData.routes.length > 1) {
+          chosenRoute = osrmData.routes[1];
         }
+
+        const coords = chosenRoute.geometry.coordinates.map((c: any) => [c[1], c[0]]);
+
+        // Color según vehículo
+        let routeColor = '#2ecc71';
+        let routeDash: string | null = null;
+        if (transportMode === 'walking') { routeColor = '#3498db'; routeDash = '5, 10'; }
+        else if (transportMode === 'scooter') { routeColor = '#f39c12'; }
+        else if (transportMode === 'skateboard') { routeColor = '#9b59b6'; routeDash = '10, 5'; }
+
+        const lineOptions: any = { color: routeColor, weight: 5, opacity: 0.8 };
+        if (routeDash) lineOptions.dashArray = routeDash;
+
+        (window as any).__routeLine = L.polyline(coords, lineOptions).addTo(map);
+        map.fitBounds((window as any).__routeLine.getBounds(), { padding: [50, 50] });
+
+        let distKm = chosenRoute.distance / 1000;
+        let durMin = Math.round(chosenRoute.duration / 60);
+        const speeds: Record<string, number> = { walking: 5, bicycle: 15, scooter: 12, skateboard: 10 };
+        durMin = Math.round((distKm / (speeds[transportMode] || 10)) * 60);
+
+        const greenPct = preference === 'leisure' ? 0.7 : transportMode === 'bicycle' ? 0.5 : transportMode === 'walking' ? 0.6 : 0.3;
+        const aqi = preference === 'leisure' ? 2.0 : transportMode === 'walking' ? 2.5 : 3.0;
+
+        setRoute({
+          total_distance_km: parseFloat(distKm.toFixed(2)),
+          total_duration_min: durMin,
+          co2_saved_kg: parseFloat((distKm * 0.12).toFixed(2)),
+          avg_air_quality_index: aqi,
+          green_percentage: greenPct,
+        });
+        setShowResults(true);
       }
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
@@ -180,6 +236,7 @@ export default function App() {
   /* ==================== RESET ==================== */
   const reset = () => {
     if ((window as any).__routeLine) { (window as any).__leafletMap.removeLayer((window as any).__routeLine); (window as any).__routeLine = null; }
+    if ((window as any).__altRouteLine) { (window as any).__leafletMap.removeLayer((window as any).__altRouteLine); (window as any).__altRouteLine = null; }
     if ((window as any).__destMarker) { (window as any).__leafletMap.removeLayer((window as any).__destMarker); (window as any).__destMarker = null; }
     setRoute(null); setShowResults(false);
     setOrigin(userLocation); setDestination(null);
@@ -195,31 +252,31 @@ export default function App() {
       {/* ==================== FIN MAPA ==================== */}
 
       {/* ==================== PANEL IZQUIERDO: BÚSQUEDA + BOTÓN ==================== */}
-      <View style={{ position: 'absolute', top: 10, left: 10, zIndex: 1000, width: 340, gap: 6 }}>
+      <View style={{ position: 'absolute', top: 10, left: 10, zIndex: 1000, width: 300, gap: 4 }}>
         
         {/* CAMPO ORIGEN */}
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: 10, flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#2ecc71', justifyContent: 'center', alignItems: 'center', marginRight: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 12 }}>A</Text>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 10, padding: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#2ecc71', justifyContent: 'center', alignItems: 'center', marginRight: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 10 }}>A</Text>
           </View>
-          <input placeholder="Origen..." value={originSearch} onChange={(e: any) => { setSelectingOrigin(true); handleSearchInput(e.target.value); }} onFocus={() => { setSelectingOrigin(true); if (originSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 13 }} />
-          <TouchableOpacity onPress={getLocation}><Text style={{ fontSize: 16 }}>📍</Text></TouchableOpacity>
+          <input placeholder="Origen..." value={originSearch} onChange={(e: any) => { setSelectingOrigin(true); handleSearchInput(e.target.value); }} onFocus={() => { setSelectingOrigin(true); if (originSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 12 }} />
+          <TouchableOpacity onPress={getLocation}><Text style={{ fontSize: 14 }}>📍</Text></TouchableOpacity>
         </View>
 
         {/* CAMPO DESTINO */}
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 12, padding: 10, flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#e74c3c', justifyContent: 'center', alignItems: 'center', marginRight: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 12 }}>B</Text>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 10, padding: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#e74c3c', justifyContent: 'center', alignItems: 'center', marginRight: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 10 }}>B</Text>
           </View>
-          <input placeholder="Destino..." value={destSearch} onChange={(e: any) => { setSelectingOrigin(false); handleSearchInput(e.target.value); }} onFocus={() => { setSelectingOrigin(false); if (destSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 13 }} />
+          <input placeholder="Destino..." value={destSearch} onChange={(e: any) => { setSelectingOrigin(false); handleSearchInput(e.target.value); }} onFocus={() => { setSelectingOrigin(false); if (destSearch.length >= 2) setShowSuggestions(true); }} style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', fontSize: 12 }} />
         </View>
 
         {/* SUGERENCIAS */}
         {showSuggestions && suggestions.length > 0 && (
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8 }}>
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 10, padding: 6, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6 }}>
             {suggestions.map((s: any, i: number) => (
-              <TouchableOpacity key={i} onPress={() => selectSuggestion(s)} style={{ padding: 10, borderBottomWidth: i < suggestions.length - 1 ? 1 : 0, borderBottomColor: '#eee' }}>
-                <Text style={{ fontSize: 13, color: '#333' }}>📍 {s.name}</Text>
+              <TouchableOpacity key={i} onPress={() => selectSuggestion(s)} style={{ padding: 8, borderBottomWidth: i < suggestions.length - 1 ? 1 : 0, borderBottomColor: '#eee' }}>
+                <Text style={{ fontSize: 11, color: '#333' }}>📍 {s.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -227,36 +284,34 @@ export default function App() {
 
         {/* BOTÓN CALCULAR */}
         {!showResults && (
-          <TouchableOpacity style={{ backgroundColor: '#2ecc71', padding: 14, borderRadius: 12, alignItems: 'center' }} onPress={calculateRoute}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>🚀 Calcular Ruta Eco</Text>}
+          <TouchableOpacity style={{ backgroundColor: '#2ecc71', padding: 10, borderRadius: 10, alignItems: 'center' }} onPress={calculateRoute}>
+            {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>🚀 Calcular Ruta Eco</Text>}
           </TouchableOpacity>
         )}
       </View>
       {/* ==================== FIN PANEL IZQUIERDO ==================== */}
 
       {/* ==================== PANEL DERECHO: TRANSPORTE + ECO/PASEO ==================== */}
-      <View style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, gap: 8 }}>
+      <View style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, gap: 10 }}>
         
         {/* SELECTOR DE TRANSPORTE */}
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 6, gap: 6 }}>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', borderRadius: 14, padding: 6, gap: 4 }}>
           {['walking', 'bicycle', 'scooter', 'skateboard'].map(m => (
-            <TouchableOpacity key={m} style={{ width: transportMode === m ? 'auto' : 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: transportMode === m ? '#2ecc71' : '#f0f0f0', flexDirection: 'row', paddingHorizontal: transportMode === m ? 10 : 0 }} onPress={() => setTransportMode(m)}>
+            <TouchableOpacity key={m} style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: transportMode === m ? '#2ecc71' : 'rgba(240,240,240,0.5)' }} onPress={() => setTransportMode(m)} title={TRANSPORT_LABELS[m]}>
               <Text style={{ fontSize: 22 }}>{TRANSPORT_ICONS[m]}</Text>
-              {transportMode === m && <Text style={{ color: '#fff', fontSize: 9, marginLeft: 3 }}>{TRANSPORT_LABELS[m]}</Text>}
             </TouchableOpacity>
           ))}
         </View>
 
         {/* SELECTOR ECO/PASEO */}
-        <View style={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 6, gap: 6 }}>
-          <TouchableOpacity style={{ padding: 8, borderRadius: 16, alignItems: 'center', backgroundColor: preference === 'eco_fast' ? '#2ecc71' : '#f0f0f0' }} onPress={() => setPreference('eco_fast')}>
-            <Text style={{ fontSize: 18 }}>⚡</Text>
-            <Text style={{ fontSize: 8, color: preference === 'eco_fast' ? '#fff' : '#666', fontWeight: preference === 'eco_fast' ? 'bold' : 'normal' }}>ECO</Text>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', borderRadius: 14, padding: 6, gap: 6 }}>
+          <TouchableOpacity style={{ padding: 8, borderRadius: 14, alignItems: 'center', backgroundColor: preference === 'eco_fast' ? '#2ecc71' : 'rgba(240,240,240,0.5)' }} onPress={() => setPreference('eco_fast')} title="Ruta rápida evitando contaminación">
+            <Text style={{ fontSize: 20 }}>⚡</Text>
+            <Text style={{ fontSize: 8, color: preference === 'eco_fast' ? '#fff' : '#999', fontWeight: preference === 'eco_fast' ? 'bold' : 'normal', marginTop: 1 }}>ECO</Text>
           </TouchableOpacity>
-          <View style={{ height: 1, backgroundColor: '#e0e0e0', marginHorizontal: 4 }} />
-          <TouchableOpacity style={{ padding: 8, borderRadius: 16, alignItems: 'center', backgroundColor: preference === 'leisure' ? '#2ecc71' : '#f0f0f0' }} onPress={() => setPreference('leisure')}>
-            <Text style={{ fontSize: 18 }}>🌸</Text>
-            <Text style={{ fontSize: 8, color: preference === 'leisure' ? '#fff' : '#666', fontWeight: preference === 'leisure' ? 'bold' : 'normal' }}>Paseo</Text>
+          <TouchableOpacity style={{ padding: 8, borderRadius: 14, alignItems: 'center', backgroundColor: preference === 'leisure' ? '#2ecc71' : 'rgba(240,240,240,0.5)' }} onPress={() => setPreference('leisure')} title="Ruta agradable por parques y zonas verdes">
+            <Text style={{ fontSize: 20 }}>🌸</Text>
+            <Text style={{ fontSize: 8, color: preference === 'leisure' ? '#fff' : '#999', fontWeight: preference === 'leisure' ? 'bold' : 'normal', marginTop: 1 }}>Paseo</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -264,23 +319,46 @@ export default function App() {
 
       {/* ==================== PANEL RESULTADOS ==================== */}
       {showResults && route && (
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2000, backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 20, paddingBottom: 30 }}>
-          <TouchableOpacity style={{ position: 'absolute', top: 10, right: 15, zIndex: 10, backgroundColor: '#e74c3c', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' }} onPress={reset}><Text style={{ color: '#fff' }}>✕</Text></TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>{TRANSPORT_ICONS[transportMode]} {TRANSPORT_LABELS[transportMode]}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around' }}>
-            {[['📏', route.total_distance_km + ' km'], ['⏱️', route.total_duration_min + ' min'], ['🌍', route.co2_saved_kg + ' kg CO₂'], ['💨', 'Aire: ' + route.avg_air_quality_index + '/5'], ['🌳', (route.green_percentage * 100).toFixed(0) + '% verde']].map(([icon, val], i) => (
-              <View key={i} style={{ width: '30%', alignItems: 'center', backgroundColor: '#f0f0f0', padding: 10, borderRadius: 12, marginBottom: 8 }}><Text style={{ fontSize: 24 }}>{icon}</Text><Text style={{ fontSize: 13, fontWeight: 'bold', color: '#333', textAlign: 'center' }}>{val}</Text></View>
-            ))}
+        <View style={{ position: 'absolute', bottom: 10, left: 10, zIndex: 2000, width: 300, backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderRadius: 14, padding: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#333' }}>{TRANSPORT_ICONS[transportMode]} {TRANSPORT_LABELS[transportMode]}</Text>
+            <TouchableOpacity onPress={reset} style={{ backgroundColor: '#e74c3c', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontSize: 10 }}>✕</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={{ backgroundColor: '#3498db', padding: 12, borderRadius: 25, alignItems: 'center', marginTop: 10 }} onPress={reset}><Text style={{ color: '#fff', fontWeight: 'bold' }}>🔄 Nueva Ruta</Text></TouchableOpacity>
+          <View style={{ gap: 3 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 5, backgroundColor: 'rgba(46,204,113,0.08)', borderRadius: 6 }}>
+              <Text style={{ fontSize: 11, color: '#666' }}>📏 Distancia</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#333' }}>{route.total_distance_km} km</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 5, backgroundColor: 'rgba(52,152,219,0.08)', borderRadius: 6 }}>
+              <Text style={{ fontSize: 11, color: '#666' }}>⏱️ Duración</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#333' }}>{route.total_duration_min} min</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 5, backgroundColor: 'rgba(46,204,113,0.08)', borderRadius: 6 }}>
+              <Text style={{ fontSize: 11, color: '#666' }}>🌍 CO₂ ahorrado</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#333' }}>{route.co2_saved_kg} kg</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 5, backgroundColor: 'rgba(243,156,18,0.08)', borderRadius: 6 }}>
+              <Text style={{ fontSize: 11, color: '#666' }}>💨 Aire</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: route.avg_air_quality_index <= 2 ? '#2ecc71' : route.avg_air_quality_index <= 3 ? '#f39c12' : '#e74c3c' }}>{route.avg_air_quality_index}/5</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 5, backgroundColor: 'rgba(46,204,113,0.08)', borderRadius: 6 }}>
+              <Text style={{ fontSize: 11, color: '#666' }}>🌳 Zonas verdes</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#333' }}>{(route.green_percentage * 100).toFixed(0)}%</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={{ backgroundColor: '#3498db', padding: 6, borderRadius: 16, alignItems: 'center', marginTop: 6 }} onPress={reset}>
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>🔄 Nueva Ruta</Text>
+          </TouchableOpacity>
         </View>
       )}
       {/* ==================== FIN PANEL RESULTADOS ==================== */}
 
       {/* ==================== ERROR ==================== */}
       {error && (
-        <View style={{ position: 'absolute', bottom: 30, left: 20, right: 20, zIndex: 3000, backgroundColor: '#e74c3c', padding: 15, borderRadius: 15 }}>
-          <Text style={{ color: '#fff' }}>❌ {error}</Text>
+        <View style={{ position: 'absolute', bottom: 30, left: 20, right: 20, zIndex: 3000, backgroundColor: 'rgba(231,76,60,0.9)', padding: 12, borderRadius: 12 }}>
+          <Text style={{ color: '#fff', fontSize: 12 }}>❌ {error}</Text>
         </View>
       )}
       {/* ==================== FIN ERROR ==================== */}
