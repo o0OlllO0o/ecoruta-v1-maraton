@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap');
 
 :root {
-    --bg: #fafaf8;
+    --bg: #f5f4f1;
     --bg-secondary: #ffffff;
-    --text: #2d2d2d;
+    --text: #2c2c2c;
     --text-secondary: #6b6b6b;
-    --accent: #e67e22;
-    --accent-hover: #d35400;
-    --green: #5a8f4b;
-    --yellow: #f0c040;
+    --accent: #c5893e;
+    --accent-hover: #a06e2e;
+    --green: #6b8b6b;
+    --yellow: #d4c5a0;
     --card-bg: #ffffff;
-    --card-border: #e8e8e6;
-    --card-shadow: 0 4px 24px rgba(0,0,0,0.05);
-    --stat-bg: #f5f3ef;
-    --stat-border: #e8e8e6;
-    --hero-gradient: linear-gradient(135deg, #fafaf8 0%, #fef5e7 50%, #fafaf8 100%);
-    --timeline-color: #e67e22;
+    --card-border: #e0ded8;
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    --stat-bg: #edeae4;
+    --stat-border: #e0ded8;
+    --hero-gradient: linear-gradient(135deg, #f5f4f1 0%, #eae6df 50%, #f5f4f1 100%);
+    --timeline-color: #c5893e;
     --btn-text: #ffffff;
     --font-display: 'Space Mono', monospace;
     --font-body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -50,6 +50,7 @@ h1, h2, h3, .stat .number, .btn {
     color: var(--text);
     margin-bottom: 8px;
     line-height: 1.1;
+    font-weight: 400;
 }
 .hero .subtitle {
     font-size: clamp(1rem, 2vw, 1.3rem);
@@ -58,14 +59,6 @@ h1, h2, h3, .stat .number, .btn {
     text-transform: none;
     letter-spacing: 0;
     font-style: italic;
-}
-
-/* ========== LOGO ========== */
-.logo-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 20px;
 }
 
 /* ========== STATS ========== */
@@ -88,7 +81,7 @@ h1, h2, h3, .stat .number, .btn {
 .stat:hover { transform: translateY(-3px); }
 .stat .number {
     font-size: 3.5rem;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--accent);
     line-height: 1;
 }
@@ -124,15 +117,19 @@ h1, h2, h3, .stat .number, .btn {
 .timeline-item:nth-child(2)::before { background: var(--green); }
 .timeline-item:nth-child(3)::before { background: var(--yellow); }
 .timeline-item:nth-child(4)::before { background: var(--accent); }
+.timeline-item:nth-child(5)::before { background: var(--green); }
+.timeline-item:nth-child(6)::before { background: var(--yellow); }
+.timeline-item:nth-child(7)::before { background: var(--accent); }
+.timeline-item:nth-child(8)::before { background: var(--green); }
 .timeline-item .time {
     font-size: 0.8rem;
     color: var(--accent);
-    font-weight: 700;
+    font-weight: 400;
     font-family: var(--font-display);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
-.timeline-item h3 { font-size: 1.1rem; margin: 4px 0; font-weight: 600; text-transform: uppercase; }
+.timeline-item h3 { font-size: 1.1rem; margin: 4px 0; font-weight: 400; text-transform: uppercase; }
 .timeline-item p { color: var(--text-secondary); font-size: 0.95rem; }
 
 /* ========== CARDS ========== */
@@ -153,11 +150,11 @@ h1, h2, h3, .stat .number, .btn {
 }
 .card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.08);
 }
 .card:first-child { border-top: 3px solid var(--accent); }
 .card:last-child { border-top: 3px solid var(--green); }
-.card h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 12px; font-weight: 700; }
+.card h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 12px; font-weight: 400; }
 .card p { color: var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem; }
 .card .btn {
     display: inline-block;
@@ -165,14 +162,14 @@ h1, h2, h3, .stat .number, .btn {
     color: var(--btn-text);
     text-decoration: none;
     border-radius: 12px;
-    font-weight: 700;
+    font-weight: 400;
     font-size: 0.9rem;
     transition: background 0.2s ease, transform 0.2s ease;
 }
 .card:first-child .btn { background: var(--accent); }
 .card:first-child .btn:hover { background: var(--accent-hover); }
 .card:last-child .btn { background: var(--green); }
-.card:last-child .btn:hover { background: #4a7a3a; }
+.card:last-child .btn:hover { background: #5a7a5a; }
 .card .btn:hover { transform: scale(1.04); }
 
 /* ========== FOOTER ========== */
