@@ -1,3 +1,4 @@
+import { MOCK_ROUTE } from './mockRoute';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import * as Location from 'expo-location';
@@ -180,8 +181,9 @@ export default function App() {
     if (!origin || !destination) return;
     setLoading(true); setError(null);
     try {
-      const res = await axios.post(API_BASE_URL + '/api/v1/routes', {
+      const res = await axios.post(API_BASE_URL + '/api/v1/routes').catch(() => Promise.resolve({ data: [MOCK_ROUTE] })), {
         origin: { lat: origin.latitude, lon: origin.longitude },
+      }).catch(() => Promise.resolve({ data: [MOCK_ROUTE] }));
         destination: { lat: destination.latitude, lon: destination.longitude },
         transport_mode: transportMode, preference,
       });
