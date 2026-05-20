@@ -1,44 +1,27 @@
-
-/* ========== TOGGLE TEMA ========== */
-.theme-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    background: var(--card-bg);
-    border-radius: 30px;
-    padding: 5px;
-    display: flex;
-    gap: 5px;
-    border: 1px solid var(--card-border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    transition: background var(--transition-speed);
-}
-.theme-toggle button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    background: transparent;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.theme-toggle button:hover {
-    transform: scale(1.15);
-    background: rgba(128,128,128,0.2);
-}
-.theme-toggle button.active {
-    background: var(--accent);
-    color: white;
-    box-shadow: 0 0 15px var(--accent);
-}
-
-/* ========== TEST VISUAL ========== */
-[data-theme="dark"] body { background: #000 !important; }
-[data-theme="light"] body { background: #fff !important; }
-[data-theme="light"] body { background: #fff !important; }
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap");
+:root{--bg:#f8fafc;--bg-secondary:#fff;--text:#1e293b;--text-secondary:#64748b;--accent:#0ea5e9;--accent-hover:#0284c7;--card-bg:#fff;--card-border:#e2e8f0;--card-shadow:0 4px 24px rgba(0,0,0,0.06);--stat-bg:#f1f5f9;--stat-border:#e2e8f0;--hero-gradient:linear-gradient(135deg,#f8fafc 0%,#e0f2fe 50%,#f8fafc 100%);--timeline-color:#0ea5e9;--btn-text:#fff;--font-display:"Space Mono",monospace;--font-body:"Inter",system-ui,-apple-system,sans-serif}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.6;margin:0}
+h1,h2,h3,.stat .number,.btn{font-family:var(--font-display);text-transform:uppercase;letter-spacing:-0.5px}
+.hero{text-align:center;padding:100px 24px 80px;background:var(--hero-gradient)}
+.hero h1{font-size:clamp(2.8rem,6vw,4.5rem);color:var(--accent);margin:0 0 16px;line-height:1.1}
+.hero .subtitle{font-size:clamp(1rem,2vw,1.3rem);color:var(--text-secondary);font-weight:400;text-transform:none;letter-spacing:0}
+.container{max-width:1000px;margin:0 auto;padding:60px 24px}
+.stats{display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin:48px 0}
+.stat{text-align:center;background:var(--stat-bg);padding:28px 40px;border-radius:20px;border:1px solid var(--stat-border);min-width:160px}
+.stat .number{font-size:3.5rem;font-weight:700;color:var(--accent);line-height:1}
+.stat .label{font-size:0.85rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-top:8px;font-family:var(--font-display)}
+.timeline{margin:60px 0;padding-left:32px;border-left:2px solid var(--timeline-color)}
+.timeline-item{margin-bottom:36px;position:relative}
+.timeline-item::before{content:"";position:absolute;left:-40px;top:4px;width:16px;height:16px;background:var(--timeline-color);border-radius:50%;border:3px solid var(--bg)}
+.timeline-item .time{font-size:0.8rem;color:var(--accent);font-weight:700;font-family:var(--font-display);text-transform:uppercase;letter-spacing:1px}
+.timeline-item h3{font-size:1.1rem;margin:4px 0;font-weight:600;text-transform:uppercase}
+.timeline-item p{color:var(--text-secondary);font-size:0.95rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin:48px 0}
+.card{background:var(--card-bg);border-radius:20px;padding:36px 28px;border:1px solid var(--card-border);text-align:center;box-shadow:var(--card-shadow);transition:transform 0.3s ease,box-shadow 0.3s ease}
+.card:hover{transform:translateY(-6px);box-shadow:0 12px 36px rgba(0,0,0,0.1)}
+.card h3{font-size:1.2rem;color:var(--accent);margin-bottom:12px;font-weight:700}
+.card p{color:var(--text-secondary);margin-bottom:20px;font-size:0.95rem}
+.card .btn{display:inline-block;padding:14px 32px;background:var(--accent);color:var(--btn-text);text-decoration:none;border-radius:12px;font-weight:700;font-size:0.9rem;transition:background 0.2s ease,transform 0.2s ease}
+.card .btn:hover{background:var(--accent-hover);transform:scale(1.04)}
+footer{text-align:center;padding:40px;color:var(--text-secondary);font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)}
+@media(max-width:600px){.stats{gap:16px}.stat{padding:20px 24px;min-width:120px}.stat .number{font-size:2.4rem}.hero h1{font-size:2rem}}
