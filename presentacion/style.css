@@ -41,3 +41,4 @@
 /* ========== TEST VISUAL ========== */
 [data-theme="dark"] body { background: #000 !important; }
 [data-theme="light"] body { background: #fff !important; }
+[data-theme="light"] body { background: #fff !important; }
