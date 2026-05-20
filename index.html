@@ -1,7 +1,5 @@
 <script>
-  if (typeof url === "string" && url.includes("/api/v1/routes")) {
     console.log("🚀 Interceptada petición a /api/v1/routes, devolviendo datos simulados");
-    return Promise.resolve(new Response(JSON.stringify([{
       total_distance_km: 3.8,
       total_duration_min: 25,
       co2_saved_kg: 0.46,
