@@ -29,10 +29,6 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [editingField, setEditingField] = useState<'origin' | 'dest'>('origin');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const PASSWORD = 'ecoruta2026';
   /* ==================== FIN ESTADOS ==================== */
 
   const searchTimeout = useRef<any>(null);
@@ -40,26 +36,14 @@ export default function App() {
   /* ==================== EFECTOS ==================== */
   useEffect(() => {
     getLocation();
+    if (Platform.OS === 'web') loadLeaflet();
   }, []);
-  useEffect(() => {
-    if (localStorage.getItem('ecoruta_auth') === 'true') {
-      setIsAuthenticated(true);
-    }
-  }, []);
-  useEffect(() => {
-    if (isAuthenticated && Platform.OS === 'web') {
-      setTimeout(() => {
-        (window as any).__mapInit = false;
-        loadLeaflet();
-      }, 300);
-    }
-  }, [isAuthenticated]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && (window as any).__leafletMap) {
       updateMarkers();
-      (window as any).__currentOrigin = origin;
-      (window as any).__currentDest = destination;
+          (window as any).__currentOrigin = origin;
+    (window as any).__currentDest = destination;
     }
   }, [origin, destination]);
 
@@ -96,9 +80,10 @@ export default function App() {
 
     map.on('click', (e: any) => {
       const coord = { latitude: e.latlng.lat, longitude: e.latlng.lng };
+      // Leer los valores actuales de las variables globales
       const currentOrigin = (window as any).__currentOrigin;
       const currentDest = (window as any).__currentDest;
-
+      
       if (!currentOrigin) {
         setOrigin(coord);
         setOriginSearch(`${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)}`);
@@ -117,9 +102,9 @@ export default function App() {
 
     (window as any).__leafletMap = map;
     (window as any).__originMarker = null;
-    (window as any).__destMarker = null;
     (window as any).__currentOrigin = null;
-    (window as any).__currentDest = null;
+(window as any).__currentDest = null;
+    (window as any).__destMarker = null;
   };
 
   const updateMarkers = () => {
@@ -278,46 +263,6 @@ export default function App() {
   };
   /* ==================== FIN RESET ==================== */
 
-  /* ==================== LOGIN ==================== */
-  const handleLogin = () => {
-    if (passwordInput === PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem('ecoruta_auth', 'true');
-      setLoginError('');
-    } else {
-      setLoginError('Clave incorrecta');
-    }
-  };
-  /* ==================== FIN LOGIN ==================== */
-
-  /* ==================== PANTALLA LOGIN ==================== */
-  if (!isAuthenticated) {
-    console.log('isAuthenticated:', isAuthenticated);
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2ecc71' }}>
-        <View style={{ backgroundColor: '#fff', padding: 30, borderRadius: 20, width: 300, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 }}>
-          <Text style={{ fontSize: 48, marginBottom: 10 }}>🌿</Text>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2ecc71', marginBottom: 20 }}>EcoRuta Valencia</Text>
-          <Text style={{ fontSize: 14, color: '#666', marginBottom: 15 }}>Introduce la clave de acceso</Text>
-          <input
-            type="password"
-            placeholder="Clave..."
-            value={passwordInput}
-            onChange={(e: any) => setPasswordInput(e.target.value)}
-            onKeyPress={(e: any) => { if (e.key === 'Enter') handleLogin(); }}
-            style={{ width: '100%', padding: 12, borderRadius: 10, border: '2px solid #ddd', fontSize: 16, textAlign: 'center', marginBottom: 10, outline: 'none' }}
-          />
-          {loginError && <Text style={{ color: '#e74c3c', fontSize: 12, marginBottom: 5 }}>{loginError}</Text>}
-          <TouchableOpacity style={{ backgroundColor: '#2ecc71', padding: 12, borderRadius: 10, width: '100%', alignItems: 'center' }} onPress={handleLogin}>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Entrar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-  /* ==================== FIN PANTALLA LOGIN ==================== */
-
-  /* ==================== PANTALLA PRINCIPAL ==================== */
   return (
     <View style={{ flex: 1, position: 'relative' }}>
       {/* ==================== MAPA ==================== */}
