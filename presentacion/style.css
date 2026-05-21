@@ -214,3 +214,35 @@ footer {
     animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ========== HERO CENTRADO ========== */
+.hero-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+.hero-overlay input {
+    width: 520px;
+    max-width: 90vw;
+    padding: 18px 24px;
+    font-size: 18px;
+    font-weight: 600;
+    font-family: var(--font-display);
+    background: rgba(255,255,255,0.95);
+    color: var(--text);
+    border: none;
+    border-radius: 14px;
+    outline: none;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    animation: pulse 2s infinite;
+    backdrop-filter: blur(10px);
+    cursor: default;
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(197,137,62,0.2); }
+    70% { box-shadow: 0 0 0 12px rgba(197,137,62,0); }
+    100% { box-shadow: 0 0 0 0 rgba(197,137,62,0); }
+}
