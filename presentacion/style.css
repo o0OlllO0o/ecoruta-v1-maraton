@@ -1,6 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap');
 
+/* ========== TEMA OSCURO (POR DEFECTO) ========== */
 :root {
+    --bg: #0a0a0a;
+    --bg-secondary: #111;
+    --text: #e0e0e0;
+    --text-secondary: #aaa;
+    --accent: #c5893e;
+    --accent-hover: #a06e2e;
+    --green: #6b8b6b;
+    --yellow: #d4c5a0;
+    --card-bg: rgba(255,255,255,0.05);
+    --card-border: rgba(255,255,255,0.1);
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    --stat-bg: rgba(255,255,255,0.05);
+    --stat-border: rgba(255,255,255,0.1);
+    --hero-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+    --timeline-color: #c5893e;
+    --btn-text: #0a0a0a;
+    --font-display: 'Space Mono', monospace;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ========== TEMA CLARO ========== */
+[data-theme="light"] {
     --bg: #f5f4f1;
     --bg-secondary: #ffffff;
     --text: #2c2c2c;
@@ -17,8 +40,6 @@
     --hero-gradient: linear-gradient(135deg, #f5f4f1 0%, #eae6df 50%, #f5f4f1 100%);
     --timeline-color: #c5893e;
     --btn-text: #ffffff;
-    --font-display: 'Space Mono', monospace;
-    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,6 +49,7 @@ body {
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
+    transition: background 0.3s, color 0.3s;
 }
 
 h1, h2, h3, .stat .number, .btn {
@@ -38,12 +60,44 @@ h1, h2, h3, .stat .number, .btn {
 
 .container { max-width: 1000px; margin: 0 auto; padding: 60px 24px; }
 
+/* ========== TOGGLE TEMA ========== */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: var(--card-bg);
+    border-radius: 30px;
+    padding: 5px;
+    display: flex;
+    gap: 5px;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    transition: background 0.3s;
+}
+.theme-toggle button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    background: transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.theme-toggle button:hover { transform: scale(1.15); background: rgba(128,128,128,0.2); }
+.theme-toggle button.active { background: var(--accent); color: white; box-shadow: 0 0 15px var(--accent); }
+
 /* ========== HERO ========== */
 .hero {
     text-align: center;
     padding: 100px 24px 80px;
     background: var(--hero-gradient);
     border-bottom: 1px solid var(--card-border);
+    transition: background 0.3s;
 }
 .hero h1 {
     font-size: clamp(2.8rem, 6vw, 4.5rem);
@@ -76,7 +130,7 @@ h1, h2, h3, .stat .number, .btn {
     border-radius: 20px;
     border: 1px solid var(--stat-border);
     min-width: 160px;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease, background 0.3s, border 0.3s;
 }
 .stat:hover { transform: translateY(-3px); }
 .stat .number {
@@ -96,23 +150,70 @@ h1, h2, h3, .stat .number, .btn {
     font-family: var(--font-display);
 }
 
+/* ========== CONSOLA ========== */
+.console {
+    margin: 40px 0;
+    background: #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    font-family: 'Space Mono', monospace;
+}
+.console-header {
+    background: #2d2d2d;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.console-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.console-title { margin-left: 12px; color: #888; font-size: 0.8rem; }
+.console-body {
+    padding: 20px 24px;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #c0c0c0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.console-body p { margin-bottom: 12px; }
+.user-prompt { color: #61dafb; font-weight: 700; }
+.ai-response { color: #2ecc71; font-weight: 700; }
+.console-cursor { color: #fff; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
 /* ========== TIMELINE ========== */
 .timeline {
     margin: 60px 0;
     padding-left: 32px;
     border-left: 2px solid var(--timeline-color);
 }
+.timeline details { margin-bottom: 0; }
+.timeline summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 0;
+    transition: color 0.2s ease;
+}
+.timeline summary::-webkit-details-marker { display: none; }
+.timeline summary:hover h3 { color: var(--accent); }
+.timeline summary h3 { display: inline; font-size: 1.1rem; margin: 4px 0; font-weight: 400; text-transform: uppercase; }
+.timeline details[open] summary h3 { color: var(--accent); }
+.timeline details p { padding-left: 0; margin-top: 4px; color: var(--text-secondary); font-size: 0.95rem; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 .timeline-item { margin-bottom: 36px; position: relative; }
 .timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -40px;
-    top: 4px;
-    width: 16px;
-    height: 16px;
-    background: var(--accent);
-    border-radius: 50%;
-    border: 3px solid var(--bg);
+    content: ''; position: absolute; left: -40px; top: 4px;
+    width: 16px; height: 16px; background: var(--accent);
+    border-radius: 50%; border: 3px solid var(--bg);
 }
 .timeline-item:nth-child(2)::before { background: var(--green); }
 .timeline-item:nth-child(3)::before { background: var(--yellow); }
@@ -122,15 +223,9 @@ h1, h2, h3, .stat .number, .btn {
 .timeline-item:nth-child(7)::before { background: var(--accent); }
 .timeline-item:nth-child(8)::before { background: var(--green); }
 .timeline-item .time {
-    font-size: 0.8rem;
-    color: var(--accent);
-    font-weight: 400;
-    font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    font-size: 0.8rem; color: var(--accent); font-weight: 400;
+    font-family: var(--font-display); text-transform: uppercase; letter-spacing: 1px;
 }
-.timeline-item h3 { font-size: 1.1rem; margin: 4px 0; font-weight: 400; text-transform: uppercase; }
-.timeline-item p { color: var(--text-secondary); font-size: 0.95rem; }
 
 /* ========== CARDS ========== */
 .cards {
@@ -146,12 +241,9 @@ h1, h2, h3, .stat .number, .btn {
     border: 1px solid var(--card-border);
     text-align: center;
     box-shadow: var(--card-shadow);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s, border 0.3s;
 }
-.card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.08);
-}
+.card:hover { transform: translateY(-6px); box-shadow: 0 12px 36px rgba(0,0,0,0.08); }
 .card:first-child { border-top: 3px solid var(--accent); }
 .card:last-child { border-top: 3px solid var(--green); }
 .card h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 12px; font-weight: 400; }
@@ -191,57 +283,3 @@ footer {
     .stat .number { font-size: 2.4rem; }
     .hero h1 { font-size: 2rem; }
 }
-
-/* ========== ACORDEÓN (DETAILS/SUMMARY) ========== */
-.timeline details { margin-bottom: 0; }
-.timeline summary {
-    list-style: none;
-    cursor: pointer;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 8px 0;
-    transition: color 0.2s ease;
-}
-.timeline summary::-webkit-details-marker { display: none; }
-.timeline summary::marker { display: none; content: ''; }
-.timeline summary:hover h3 { color: var(--accent); }
-.timeline summary h3 { display: inline; transition: color 0.2s ease; }
-.timeline details[open] summary h3 { color: var(--accent); }
-.timeline details p {
-    padding-left: 0;
-    margin-top: 4px;
-    animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-
-/* ========== TOGGLE TEMA ========== */
-.theme-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    background: var(--card-bg);
-    border-radius: 30px;
-    padding: 5px;
-    display: flex;
-    gap: 5px;
-    border: 1px solid var(--card-border);
-    backdrop-filter: blur(10px);
-    transition: background 0.3s;
-}
-.theme-toggle button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    background: transparent;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.theme-toggle button:hover { transform: scale(1.15); background: rgba(128,128,128,0.2); }
-.theme-toggle button.active { background: var(--accent); color: white; box-shadow: 0 0 15px var(--accent); }
