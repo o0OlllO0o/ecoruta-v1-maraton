@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="theme-toggle">
+    <button id="btn-dark" class="active" title="Modo oscuro">🌙</button>
+    <button id="btn-light" title="Modo claro">☀️</button>
+</div>
 
 <header class="hero">
     <div class="hero-content">
@@ -77,5 +81,20 @@
     <p>© 2026 EcoRuta Valencia · Desarrollado con DeepSeek AI</p>
 </footer>
 
+<script>
+const html = document.documentElement;
+const btnDark = document.getElementById("btn-dark");
+const btnLight = document.getElementById("btn-light");
+function setTheme(theme) {
+    html.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+    btnDark.classList.toggle("active", theme === "dark");
+    btnLight.classList.toggle("active", theme === "light");
+}
+btnDark.addEventListener("click", () => setTheme("dark"));
+btnLight.addEventListener("click", () => setTheme("light"));
+const saved = localStorage.getItem("theme") || "dark";
+setTheme(saved);
+</script>
 </body>
 </html>

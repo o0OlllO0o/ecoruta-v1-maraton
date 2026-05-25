@@ -214,3 +214,34 @@ footer {
     animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ========== TOGGLE TEMA ========== */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: var(--card-bg);
+    border-radius: 30px;
+    padding: 5px;
+    display: flex;
+    gap: 5px;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    transition: background 0.3s;
+}
+.theme-toggle button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    background: transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.theme-toggle button:hover { transform: scale(1.15); background: rgba(128,128,128,0.2); }
+.theme-toggle button.active { background: var(--accent); color: white; box-shadow: 0 0 15px var(--accent); }
