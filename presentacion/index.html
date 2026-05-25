@@ -285,7 +285,6 @@ async function startReading() {
     const subtitle = document.querySelector(".hero-content .subtitle");
     const consoleBody = document.querySelector(".console-body");
     if (hero) { smoothScrollTo(hero); await new Promise(r => setTimeout(r, 400)); await speakText(hero.textContent.trim() + ". " + subtitle.textContent.trim() + ".", hero); await new Promise(r => setTimeout(r, 300)); }
-    if (consoleBody) { smoothScrollTo(consoleBody); await new Promise(r => setTimeout(r, 400)); const lines = consoleBody.querySelectorAll("p"); for (const line of lines) { if (!isReading) break; await speakText(line.textContent.trim(), line); await new Promise(r => setTimeout(r, 200)); } await new Promise(r => setTimeout(r, 500)); }
 
     const items = getTimelineTexts();
     for (const item of items) {
