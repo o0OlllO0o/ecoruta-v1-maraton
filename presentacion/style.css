@@ -15,7 +15,7 @@
     --card-shadow: 0 4px 24px rgba(0,0,0,0.3);
     --stat-bg: rgba(255,255,255,0.05);
     --stat-border: rgba(255,255,255,0.1);
-    --hero-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+    --hero-gradient: linear-gradient(135deg, #0a0a0a 0%, #111 50%, #0a0a0a 100%);
     --timeline-color: #c5893e;
     --btn-text: #0a0a0a;
     --font-display: 'Space Mono', monospace;
