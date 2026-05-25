@@ -5,8 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoRuta Valencia | De 0 a App en una noche</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .read-aloud-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 999;
+            background: #1e3a8a;
+            color: #fff;
+            border: none;
+            padding: 14px 22px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .read-aloud-btn:hover {
+            background: #152c6b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .read-aloud-btn:active {
+            transform: scale(0.96);
+        }
+        .read-aloud-btn.reading {
+            background: #c0392b;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.5); }
+            50% { box-shadow: 0 0 0 12px rgba(192, 57, 43, 0); }
+        }
+        .speaking-highlight {
+            background: rgba(30, 58, 138, 0.12);
+            border-radius: 6px;
+            transition: background 0.3s;
+            padding: 4px 8px;
+            margin: -4px -8px;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body>
+
+<button class="read-aloud-btn" id="btnReadAloud" title="Leer presentación en voz alta">
+    🔊 <span>Leer presentación</span>
+</button>
 
 <div class="font-size-widget">
     <button id="btn-font-minus" title="Reducir texto">−</button>
@@ -167,5 +216,101 @@ const savedFontSize = localStorage.getItem("fontSize");
 if (savedFontSize) { fontSize = parseFloat(savedFontSize); updateFontSize(); }
 </script>
 
+
+<script>
+const btnRead = document.getElementById("btnReadAloud");
+const timeline = document.getElementById("timeline");
+let isReading = false;
+let currentUtterance = null;
+let currentElement = null;
+
+function getTimelineTexts() {
+    const items = [];
+    const details = timeline.querySelectorAll("details.timeline-item");
+    details.forEach(detail => {
+        const summary = detail.querySelector("summary");
+        const time = summary?.querySelector(".time")?.textContent || "";
+        const title = summary?.querySelector("h3")?.textContent || "";
+        const paragraphs = detail.querySelectorAll(":scope > p, :scope > .chat-quote");
+        const texts = [];
+        paragraphs.forEach(p => {
+            const text = p.textContent.trim();
+            if (text) texts.push({ element: p, text: text });
+        });
+        items.push({ time, title, texts, detailElement: detail, summaryElement: summary });
+    });
+    return items;
+}
+
+function smoothScrollTo(element) {
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function highlightElement(el) {
+    if (currentElement) currentElement.classList.remove("speaking-highlight");
+    if (el) { el.classList.add("speaking-highlight"); currentElement = el; }
+}
+
+function stopReading() {
+    if (currentUtterance) { currentUtterance.onend = null; currentUtterance.onboundary = null; speechSynthesis.cancel(); currentUtterance = null; }
+    isReading = false;
+    btnRead.classList.remove("reading");
+    btnRead.querySelector("span").textContent = "Leer presentación";
+    highlightElement(null);
+}
+
+function speakText(text, element) {
+    return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "es-ES";
+        utterance.rate = 0.95;
+        const voices = speechSynthesis.getVoices();
+        const spanishVoice = voices.find(v => v.lang.startsWith("es-ES")) || voices.find(v => v.lang.startsWith("es"));
+        if (spanishVoice) utterance.voice = spanishVoice;
+        currentUtterance = utterance;
+        utterance.onstart = () => highlightElement(element);
+        utterance.onend = () => { currentUtterance = null; resolve(); };
+        utterance.onerror = (e) => { if (e.error !== "canceled" && e.error !== "interrupted") console.warn(e.error); currentUtterance = null; resolve(); };
+        speechSynthesis.speak(utterance);
+    });
+}
+
+async function startReading() {
+    if (isReading) { stopReading(); return; }
+    isReading = true;
+    btnRead.classList.add("reading");
+    btnRead.querySelector("span").textContent = "🔇 Detener lectura";
+    const items = getTimelineTexts();
+    for (const item of items) {
+        if (!isReading) break;
+        item.detailElement.open = true;
+        await new Promise(r => setTimeout(r, 200));
+        smoothScrollTo(item.summaryElement);
+        await new Promise(r => setTimeout(r, 600));
+        await speakText(item.time + ". " + item.title + ".", item.summaryElement);
+        await new Promise(r => setTimeout(r, 200));
+        for (const t of item.texts) {
+            if (!isReading) break;
+            smoothScrollTo(t.element);
+            await new Promise(r => setTimeout(r, 300));
+            await speakText(t.text, t.element);
+            await new Promise(r => setTimeout(r, 100));
+        }
+        await new Promise(r => setTimeout(r, 400));
+    }
+    if (isReading) {
+        const finalP = document.querySelector(".timeline + p");
+        const finalQuote = document.querySelector(".timeline + p + .chat-quote");
+        if (finalP) { smoothScrollTo(finalP); await new Promise(r => setTimeout(r, 400)); await speakText(finalP.textContent.trim(), finalP); }
+        if (finalQuote) { smoothScrollTo(finalQuote); await new Promise(r => setTimeout(r, 400)); await speakText(finalQuote.textContent.trim(), finalQuote); }
+    }
+    stopReading();
+}
+
+speechSynthesis.getVoices();
+speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+btnRead.addEventListener("click", startReading);
+window.addEventListener("beforeunload", stopReading);
+</script>
 </body>
 </html>
