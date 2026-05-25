@@ -293,8 +293,7 @@ async function startReading() {
         await new Promise(r => setTimeout(r, 200));
         smoothScrollTo(item.summaryElement);
         await new Promise(r => setTimeout(r, 600));
-            const fastUtterance = utterance;
-            if (element.tagName === "P") utterance.rate = 1.5;
+
 
         await speakText(item.time + ". " + item.title + ".", item.summaryElement);
         await new Promise(r => setTimeout(r, 200));
