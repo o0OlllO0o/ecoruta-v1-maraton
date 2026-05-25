@@ -283,3 +283,35 @@ footer {
     .stat .number { font-size: 2.4rem; }
     .hero h1 { font-size: 2rem; }
 }
+
+/* ========== WIDGET TAMAÑO FUENTE ========== */
+.font-size-widget {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: var(--card-bg);
+    border-radius: 30px;
+    padding: 5px;
+    display: flex;
+    gap: 5px;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    transition: background 0.3s;
+}
+.font-size-widget button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: transparent;
+    color: var(--text);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.font-size-widget button:hover { transform: scale(1.15); background: rgba(128,128,128,0.2); }

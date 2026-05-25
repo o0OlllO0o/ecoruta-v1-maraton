@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="font-size-widget">
+    <button id="btn-font-minus" title="Reducir texto">−</button>
+    <button id="btn-font-plus" title="Aumentar texto">+</button>
+</div>
 <div class="theme-toggle">
     <button id="btn-dark" class="active" title="Modo oscuro">🌙</button>
     <button id="btn-light" title="Modo claro">☀️</button>
@@ -95,6 +99,21 @@ btnDark.addEventListener("click", () => setTheme("dark"));
 btnLight.addEventListener("click", () => setTheme("light"));
 const saved = localStorage.getItem("theme") || "dark";
 setTheme(saved);
+
+/* === CONTROL TAMAÑO FUENTE === */
+let fontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+const minSize = 12;
+const maxSize = 24;
+const btnMinus = document.getElementById("btn-font-minus");
+const btnPlus = document.getElementById("btn-font-plus");
+function updateFontSize() {
+    document.documentElement.style.fontSize = fontSize + "px";
+    localStorage.setItem("fontSize", fontSize);
+}
+btnMinus.addEventListener("click", () => { if (fontSize > minSize) { fontSize -= 2; updateFontSize(); } });
+btnPlus.addEventListener("click", () => { if (fontSize < maxSize) { fontSize += 2; updateFontSize(); } });
+const savedFontSize = localStorage.getItem("fontSize");
+if (savedFontSize) { fontSize = parseFloat(savedFontSize); updateFontSize(); }
 </script>
 </body>
 </html>
