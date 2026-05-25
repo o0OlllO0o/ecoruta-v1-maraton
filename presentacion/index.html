@@ -263,7 +263,7 @@ function speakText(text, element) {
     return new Promise((resolve) => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "es-ES";
-        utterance.rate = 0.95;
+        utterance.rate = 1.1;
         const voices = speechSynthesis.getVoices();
         const spanishVoice = voices.find(v => v.lang.startsWith("es-ES")) || voices.find(v => v.lang.startsWith("es"));
         if (spanishVoice) utterance.voice = spanishVoice;
@@ -280,6 +280,13 @@ async function startReading() {
     isReading = true;
     btnRead.classList.add("reading");
     btnRead.querySelector("span").textContent = "🔇 Detener lectura";
+    // Leer título y subtítulo
+    const hero = document.querySelector(".hero-content h1");
+    const subtitle = document.querySelector(".hero-content .subtitle");
+    const consoleBody = document.querySelector(".console-body");
+    if (hero) { smoothScrollTo(hero); await new Promise(r => setTimeout(r, 400)); await speakText(hero.textContent.trim() + ". " + subtitle.textContent.trim() + ".", hero); await new Promise(r => setTimeout(r, 300)); }
+    if (consoleBody) { smoothScrollTo(consoleBody); await new Promise(r => setTimeout(r, 400)); const lines = consoleBody.querySelectorAll("p"); for (const line of lines) { if (!isReading) break; await speakText(line.textContent.trim(), line); await new Promise(r => setTimeout(r, 200)); } await new Promise(r => setTimeout(r, 500)); }
+
     const items = getTimelineTexts();
     for (const item of items) {
         if (!isReading) break;
